@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useChat } from "@ai-sdk/react";
 import { WorkflowChatTransport } from "@ai-sdk/workflow/client";
 import { useMemo, useState } from "react";
@@ -35,7 +36,7 @@ export function AgentChat() {
     return localStorage.getItem("active-workflow-run-id") ?? undefined;
   }, []);
 
-  const { messages, error, sendMessage } = useChat<ShoppingAgentUIMessage>({
+  const { messages, error, sendMessage, status } = useChat<ShoppingAgentUIMessage>({
     resume: Boolean(activeRunId),
     transport: new WorkflowChatTransport({
       api: "/api/chat",
@@ -55,7 +56,10 @@ export function AgentChat() {
     }),
   });
 
+  const isLoading = status === "submitted" || status === "streaming";
+
   const handleSubmit = (message: PromptInputMessage) => {
+    if (isLoading || !input.trim()) return;
     sendMessage({ text: input });
     setInput("");
   };
@@ -90,6 +94,7 @@ export function AgentChat() {
               }
             }),
           )}
+          {isLoading && <Spinner aria-label="Agent is thinking" />}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
@@ -105,7 +110,11 @@ export function AgentChat() {
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools />
-            <PromptInputSubmit status="ready" disabled={!input.trim()} />
+            <PromptInputSubmit
+              status={status}
+              disabled={isLoading || !input.trim()}
+              aria-label={isLoading ? "Agent is responding" : "Submit"}
+            />
           </PromptInputFooter>
         </PromptInput>
       </div>
